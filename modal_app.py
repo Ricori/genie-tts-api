@@ -27,19 +27,30 @@ model_volume = modal.Volume.from_name("genie-tts-volume", create_if_missing=True
     cpu=8.0,
     memory=8192,
     timeout=300,
-    # 把云盘挂载到容器内的 /root/data 目录下
-    volumes={"/root/data": model_volume} 
+    volumes={"/root/data": model_volume},  # 把云盘挂载到容器内的 /root/data 目录下
+    min_containers=0,       # 闲置时缩容到 0
+    max_containers=1,       # 限制最高并发，防爆刷
+    buffer_containers=0,    # 拒绝额外预留
+    scaledown_window=15,    # 完工后 15 秒无人理会即刻销毁
 )
 @modal.asgi_app()
 def fastapi_app():
-    from fastapi import FastAPI
+    from fastapi import FastAPI, Security, HTTPException
     from fastapi.responses import StreamingResponse
+    from fastapi.security.api_key import APIKeyHeader
     from pydantic import BaseModel
     import genie_tts as genie
     import tempfile
     import os
 
     app = FastAPI()
+
+    # 定义 Header 拦截器，监听 Authorization 字段
+    api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
+    def verify_api_key(api_key: str = Security(api_key_header)):
+        if api_key != f"Bearer nonoka233nonoka233nonoka233nonoka233":
+            raise HTTPException(status_code=401, detail="身份验证失败：无效的 Token")
+        return api_key
 
     # 指向挂载的云盘目录 /root/data/...
     print("正在从云盘加载 Arimura 模型与参考音频...")
@@ -59,7 +70,7 @@ def fastapi_app():
     class TTSRequest(BaseModel):
         text: str
 
-    @app.post("/tts")
+    @app.post("/tts", dependencies=[Security(verify_api_key)])
     def generate_audio_stream(req: TTSRequest):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
             temp_audio_path = tmp_file.name
