@@ -31,7 +31,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
 # 下载模型
-RUN wget -O models.zip "https://file.kvv.me/genie-tts-api.zip"
+RUN wget --progress=dot:giga -O models.zip "https://file.kvv.me/genie-tts-api.zip"
 # 解压并删除压缩包
 RUN unzip models.zip && rm models.zip
 
