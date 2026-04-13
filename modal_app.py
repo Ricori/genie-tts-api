@@ -2,7 +2,7 @@ import modal
 import io
 import os
 
-os.environ["GENIE_DATA_DIR"] = r"/root/data/GenieData"
+os.environ["GENIE_DATA_DIR"] = r"/root/GenieData"
 
 # 创建 Modal 应用
 app = modal.App("genie-tts-api")
@@ -16,10 +16,9 @@ image = (
         "pydantic",
         "genie-tts",
     )
+    .add_local_dir("./GenieData", remote_path="/root/GenieData")
+    .add_local_dir("./CharacterModels", remote_path="/root/CharacterModels")
 )
-
-# 声明要引用的云盘
-model_volume = modal.Volume.from_name("genie-tts-volume", create_if_missing=True)
 
 # 定义 Web 服务
 @app.function(
@@ -27,11 +26,10 @@ model_volume = modal.Volume.from_name("genie-tts-volume", create_if_missing=True
     cpu=8.0,
     memory=8192,
     timeout=300,
-    volumes={"/root/data": model_volume},  # 把云盘挂载到容器内的 /root/data 目录下
     min_containers=0,       # 闲置时缩容到 0
     max_containers=1,       # 限制最高并发，防爆刷
     buffer_containers=0,    # 拒绝额外预留
-    scaledown_window=15,    # 完工后 15 秒无人理会即刻销毁
+    scaledown_window=20,    # 完工后 20 秒无人理会即刻销毁
 )
 @modal.asgi_app()
 def fastapi_app():
@@ -66,12 +64,12 @@ def fastapi_app():
     print("正在从云盘加载 Arimura 模型与参考音频...")
     genie.load_character(
         character_name='arimura',
-        onnx_model_dir="/root/data/CharacterModels/v2ProPlus/arimura/tts_models",
+        onnx_model_dir="/root/CharacterModels/v2ProPlus/arimura/tts_models",
         language='ja'
     )
     genie.set_reference_audio(
         character_name='arimura',
-        audio_path="/root/data/CharacterModels/v2ProPlus/arimura/reference.wav",
+        audio_path="/root/CharacterModels/v2ProPlus/arimura/reference.wav",
         audio_text="多分、先輩が分かりやすいからじゃないすかね。",
         language='ja'
     )
