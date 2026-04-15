@@ -29,7 +29,7 @@ image = (
     min_containers=0,       # 闲置时缩容到 0
     max_containers=1,       # 限制最高并发，防爆刷
     buffer_containers=0,    # 拒绝额外预留
-    scaledown_window=20,    # 完工后 20 秒无人理会即刻销毁
+    scaledown_window=40,    # 完工后 40 秒无人理会即刻销毁
 )
 @modal.asgi_app()
 def fastapi_app():
